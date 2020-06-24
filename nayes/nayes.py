@@ -57,10 +57,60 @@ class MultiNayes:
 
         return self.label_binarizer(y[1:], classes, bin_labels[1:])
 
+    def fit(self, X, y):
+        # if X is not np.ndarray, convert from csr with `toarray()`
+        if type(X) is not np.ndarray:
+            X = X.toarray()
+
+        self.label_binarizer(y)
+
+        n_classes = self.classes.shape[0]
+        n_features = X.shape[1]
+
+        # initialize counter arrays
+        self.class_count = np.zeros(n_classes)
+        self.feature_count = np.zeros((n_classes, n_features))
+
+        # count classes and features by getting
+        # dot product of transposed binary labels
+        # they are automatically separated into their
+        # appropriate arrays
+        self.feature_count += np.dot(self.bin_labels.T, X)
+        self.class_count += self.bin_labels.sum(axis=0)
+
+        # add smoothing
+        if self.alpha > 0.0:
+            self.feature_count += self.alpha
+            smoothed_class_count = self.feature_count.sum(axis=1)
+
+            # get conditional log probabilities
+            self.feat_log_probs = (np.log(self.feature_count) -
+                                   np.log(smoothed_class_count.reshape(-1, 1)))
+        else:
+            print(
+                f"Alpha is {self.alpha}. A value this small will cause "
+                "result in errors when feature count is 0"
+            )
+            self.feat_log_probs = np.log(
+                                    self.feature_count /
+                                    self.feature_count
+                                    .sum(axis=1)
+                                    .reshape(-1, 1)
+                                  )
+
+        # get log priors
+        self.class_log_priors = (np.log(self.class_count) -
+                                 np.log(self.class_count
+                                 .sum(axis=0)
+                                 .reshape(-1, 1)))
+
+        def predict(self, X):
+            pass
+
 
 if __name__ == "__main__":
     clf = MultiNayes()
-    y = np.array([1, 0, 1, 0, 0, 0, 1, 1 ,1])
+    y = np.array([1, 2, 3, 4, 5, 7])
     clf.label_binarizer(y)
-    print(clf.classes)
+    print(clf.classes.shape[0])
     print(clf.bin_labels)
