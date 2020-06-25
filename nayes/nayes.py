@@ -1,26 +1,4 @@
 import numpy as np
-# nayes.py - necessary features
-
-# check array, should accept compressed and normal arrays
-
-# get number of features from X.shape
-
-# allow for multiclass classification by binarizing labels
-# -> always binarize, this allows for a per-class instance count.
-# -> If you take the dot product of the transposed binarization matrix
-# -> and the feature matrix, you'll get discrete counts for each class
-# -> in one quick process.
-
-# count classes and features
-
-# get class priors (log)
-
-# get feature log probabilities
-
-"""
-In scikit-learn, the number of features is set by X.shape, while the number
-of effective classes is set by a binarized y
-"""
 
 
 class MultiNayes:
@@ -36,6 +14,7 @@ class MultiNayes:
 
     def __init__(self, alpha=1.0):
         self.alpha = alpha
+        self.fitted = False
 
     def label_binarizer(self, y, classes=None, bin_labels=None):
         """convert labels into an array of shape
@@ -43,9 +22,7 @@ class MultiNayes:
            will assist in getting the log priors and probabilities"""
         if classes is None:
             classes = np.unique(y)
-            bin_labels = np.zeros(
-                                        (y.shape[0], classes.shape[0])
-                                    )
+            bin_labels = np.zeros((y.shape[0], classes.shape[0]))
             self.classes = classes
             self.bin_labels = bin_labels
 
@@ -104,13 +81,47 @@ class MultiNayes:
                                  .sum(axis=0)
                                  .reshape(-1, 1)))
 
-        def predict(self, X):
-            pass
+        self.fitted = True
+
+    def predict(self, X):
+        """Predict target from features of X"""
+
+        # check if model has fit data
+        if not self.fitted:
+            print("The classifier has not yet "
+                  "been fit. Not executing predict")
+
+        if type(X) is not np.ndarray:
+            X = X.toarray()
+
+        scores = np.dot(X, self.feat_log_probs.T) - self.class_log_priors
+
+        predictions = self.classes[np.argmax(scores, axis=1)]
+
+        return predictions
+
+    def accuracy(self, y_pred, y):
+        points = (y_pred == y).astype(int)
+        score = points.sum() / points.shape[0]
+
+        return score
 
 
 if __name__ == "__main__":
     clf = MultiNayes()
-    y = np.array([1, 2, 3, 4, 5, 7])
-    clf.label_binarizer(y)
-    print(clf.classes.shape[0])
-    print(clf.bin_labels)
+    X_train = np.array([[1, 2, 0, 0, 0, 0],
+                        [0, 0, 1, 1, 0, 0],
+                        [0, 0, 2, 1, 0, 0],
+                        [2, 3, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 3, 1],
+                        [0, 0, 0, 0, 1, 2]])
+    y_train = np.array([1, 2, 2, 1, 3, 3])
+    X_test = np.array([[1, 1, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 2, 3]])
+
+    clf = MultiNayes()
+
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+
+    print(y_pred)
