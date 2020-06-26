@@ -94,7 +94,7 @@ class MultiNayes:
         if type(X) is not np.ndarray:
             X = X.toarray()
 
-        scores = np.dot(X, self.feat_log_probs.T) - self.class_log_priors
+        scores = np.dot(X, self.feat_log_probs.T) + self.class_log_priors
 
         predictions = self.classes[np.argmax(scores, axis=1)]
 
